@@ -1,4 +1,5 @@
 import { generateEC2 } from "../generators/aws/ec2.generator.js";
+import { generateS3 } from "../generators/aws/s3.generator.js";
 
 export const generateTerraform = (infrastructure) => {
   const {
@@ -41,6 +42,9 @@ const generateResource = (resource) => {
   switch (resource.type) {
     case "ec2":
       return generateEC2(resource);
+
+    case "s3":
+      return generateS3(resource);
 
     default:
       throw new Error(
