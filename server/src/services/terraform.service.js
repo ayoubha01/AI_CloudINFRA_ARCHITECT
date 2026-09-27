@@ -1,5 +1,7 @@
 import { generateEC2 } from "../generators/aws/ec2.generator.js";
 import { generateS3 } from "../generators/aws/s3.generator.js";
+import { generateVPC } from "../generators/aws/vpc.generator.js";
+import { generateSubnet } from "../generators/aws/subnet.generator.js";
 
 export const generateTerraform = (infrastructure) => {
   const {
@@ -9,7 +11,9 @@ export const generateTerraform = (infrastructure) => {
   } = infrastructure;
 
   if (provider !== "aws") {
-    throw new Error(`Provider "${provider}" is not supported yet.`);
+    throw new Error(
+      `Provider "${provider}" is not supported yet.`
+    );
   }
 
   const providerConfig = generateProviderConfig(region);
@@ -45,6 +49,12 @@ const generateResource = (resource) => {
 
     case "s3":
       return generateS3(resource);
+
+    case "vpc":
+      return generateVPC(resource);
+
+    case "subnet":
+      return generateSubnet(resource);
 
     default:
       throw new Error(
