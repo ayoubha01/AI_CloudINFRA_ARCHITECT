@@ -2,6 +2,7 @@ import { generateEC2 } from "../generators/aws/ec2.generator.js";
 import { generateS3 } from "../generators/aws/s3.generator.js";
 import { generateVPC } from "../generators/aws/vpc.generator.js";
 import { generateSubnet } from "../generators/aws/subnet.generator.js";
+import { generateSecurityGroup } from "../generators/aws/securityGroup.generator.js";
 
 export const generateTerraform = (infrastructure) => {
   const {
@@ -55,7 +56,9 @@ const generateResource = (resource) => {
 
     case "subnet":
       return generateSubnet(resource);
-
+    case "securityGroup":
+      return generateSecurityGroup(resource);
+      
     default:
       throw new Error(
         `Resource type "${resource.type}" is not supported yet.`

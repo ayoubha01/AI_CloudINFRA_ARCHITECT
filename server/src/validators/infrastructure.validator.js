@@ -10,6 +10,11 @@ export const validateInfrastructureReferences = (infrastructure) => {
       case "subnet":
         validateSubnet(resource, resourceIndex, errors);
         break;
+
+      case "securityGroup":
+        validateSecurityGroup( resource,resourceIndex,errors);
+      break;
+
       case "ec2":
         validateEC2(resource, resourceIndex, errors);
       break;
@@ -54,21 +59,77 @@ const validateSubnet = (resource, resourceIndex, errors) => {
   }
 };
 
-const validateEC2 = (resource, resourceIndex, errors) => {
-  const referencedSubnet = resource.properties.subnet;
+const validateEC2 = (
+  resource,
+  resourceIndex,
+  errors
+) => {
+  const {
+    subnet,
+    securityGroups = []
+  } = resource.properties;
 
-  if (!referencedSubnet) {
-    return;
+  /*
+  |--------------------------------------------------------------------------
+  | Subnet validation
+  |--------------------------------------------------------------------------
+  */
+
+  if (subnet) {
+    const subnets = resourceIndex.subnet;
+
+    if (!subnets || !subnets.has(subnet)) {
+      errors.push({
+        resource: resource.name,
+        type: resource.type,
+        field: "properties.subnet",
+        message:
+          `EC2 "${resource.name}" references subnet "${subnet}", but this subnet does not exist.`
+      });
+    }
   }
 
-  const subnets = resourceIndex.subnet;
+  /*
+  |--------------------------------------------------------------------------
+  | Security Group validation
+  |--------------------------------------------------------------------------
+  */
 
-  if (!subnets || !subnets.has(referencedSubnet)) {
+  for (const securityGroup of securityGroups) {
+    const availableSecurityGroups =
+      resourceIndex.securityGroup;
+
+    if (
+      !availableSecurityGroups ||
+      !availableSecurityGroups.has(securityGroup)
+    ) {
+      errors.push({
+        resource: resource.name,
+        type: resource.type,
+        field: "properties.securityGroups",
+        message:
+          `EC2 "${resource.name}" references Security Group "${securityGroup}", but this Security Group does not exist.`
+      });
+    }
+  }
+};
+
+const validateSecurityGroup = (
+  resource,
+  resourceIndex,
+  errors
+) => {
+  const referencedVpc = resource.properties.vpc;
+
+  const vpcs = resourceIndex.vpc;
+
+  if (!vpcs || !vpcs.has(referencedVpc)) {
     errors.push({
       resource: resource.name,
       type: resource.type,
-      field: "properties.subnet",
-      message: `EC2 "${resource.name}" references subnet "${referencedSubnet}", but this subnet does not exist.`
+      field: "properties.vpc",
+      message:
+        `Security Group "${resource.name}" references VPC "${referencedVpc}", but this VPC does not exist.`
     });
   }
 };

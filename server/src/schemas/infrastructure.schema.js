@@ -19,7 +19,10 @@ const ec2PropertiesSchema = z.object({
   subnet: z
     .string()
     .min(1)
-    .optional()
+    .optional(),
+  securityGroups: z
+    .array(z.string().min(1))
+    .default([])  
 });
 
 const ec2ResourceSchema = z.object({
@@ -119,6 +122,103 @@ const subnetResourceSchema = z.object({
 
 /*
 |--------------------------------------------------------------------------
+| Security Group
+|--------------------------------------------------------------------------
+*/
+
+const securityGroupRuleSchema = z
+  .object({
+    protocol: z
+      .string()
+      .min(1),
+
+    fromPort: z
+      .number()
+      .int()
+      .min(0)
+      .max(65535)
+      .optional(),
+
+    toPort: z
+      .number()
+      .int()
+      .min(0)
+      .max(65535)
+      .optional(),
+
+    cidr: z
+      .string()
+      .min(1),
+
+    description: z
+      .string()
+      .optional()
+  })
+  .superRefine((rule, ctx) => {
+    if (rule.protocol !== "-1") {
+      if (rule.fromPort === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["fromPort"],
+          message:
+            "fromPort is required when protocol is not -1"
+        });
+      }
+
+      if (rule.toPort === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["toPort"],
+          message:
+            "toPort is required when protocol is not -1"
+        });
+      }
+    }
+
+    if (
+      rule.fromPort !== undefined &&
+      rule.toPort !== undefined &&
+      rule.fromPort > rule.toPort
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["toPort"],
+        message:
+          "toPort must be greater than or equal to fromPort"
+      });
+    }
+  });
+
+const securityGroupPropertiesSchema = z.object({
+  vpc: z
+    .string()
+    .min(1, "VPC reference is required"),
+
+  description: z
+    .string()
+    .default("Managed by AI IaC Generator"),
+
+  ingress: z
+    .array(securityGroupRuleSchema)
+    .default([]),
+
+  egress: z
+    .array(securityGroupRuleSchema)
+    .default([])
+});
+
+const securityGroupResourceSchema = z.object({
+  type: z.literal("securityGroup"),
+
+  name: z
+    .string()
+    .min(1, "Security Group name is required"),
+
+  properties: securityGroupPropertiesSchema
+});
+
+/*
+|--------------------------------------------------------------------------
 | Resource union
 |--------------------------------------------------------------------------
 */
@@ -127,7 +227,8 @@ const resourceSchema = z.discriminatedUnion("type", [
   ec2ResourceSchema,
   s3ResourceSchema,
   vpcResourceSchema,
-  subnetResourceSchema
+  subnetResourceSchema,
+  securityGroupResourceSchema
 ]);
 
 /*
