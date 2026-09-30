@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+
+FROM node:24-bookworm-slim
+
+
+ENV NODE_ENV=dev
+
+WORKDIR /app
+
+RUN chown node:node /app
+
+USER node
+
+COPY --chown=node:node /server/package.json /server/package-lock.json ./
+
+# Install production dependencies only
+RUN npm ci \
+    && npm cache clean --force
+
+# Copy application source
+COPY --chown=node:node server/ .
+
+# Document application port
+EXPOSE 5000
+
+# Start application
+# Change src/index.js if your entry point is different
+CMD ["npm", "run", "dev"]
