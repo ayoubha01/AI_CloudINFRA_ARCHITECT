@@ -1,5 +1,5 @@
 import { generateTerraform } from "../services/terraform.service.js";
-import { infrastructureSchema } from "../schemas/infra.schema.js";
+import { infrastructureSchema } from "../schemas/infrastructure.schema.js";
 import {
   validateInfrastructureReferences
 } from "../validators/infrastructure.validator.js";
