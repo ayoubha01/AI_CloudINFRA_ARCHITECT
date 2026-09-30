@@ -81,13 +81,15 @@ export const generateInfrastructureFromPrompt =
       );
     }
 
+
     const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: "https://api.groq.com/openai/v1"
     });
 
     const model =
       process.env.OPENAI_MODEL ||
-      "gpt-5.6-luna";
+      "openai/gpt-oss-20b";
 
     const response =
       await client.responses.parse({
