@@ -75,9 +75,9 @@ then a subnet belonging to it must contain:
 export const generateInfrastructureFromPrompt =
   async (userPrompt) => {
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GROQ_API_KEY) {
       throw new Error(
-        "OPENAI_API_KEY is not configured."
+        "GROQ_API_KEY is not configured."
       );
     }
 
