@@ -10,7 +10,10 @@ export const validateInfrastructureReferences = (infrastructure) => {
       case "subnet":
         validateSubnet(resource, resourceIndex, errors);
         break;
-
+      case "ec2":
+        validateEC2(resource, resourceIndex, errors);
+      break;
+      
       default:
         break;
     }
@@ -47,6 +50,25 @@ const validateSubnet = (resource, resourceIndex, errors) => {
       type: resource.type,
       field: "properties.vpc",
       message: `Subnet "${resource.name}" references VPC "${referencedVpc}", but this VPC does not exist.`
+    });
+  }
+};
+
+const validateEC2 = (resource, resourceIndex, errors) => {
+  const referencedSubnet = resource.properties.subnet;
+
+  if (!referencedSubnet) {
+    return;
+  }
+
+  const subnets = resourceIndex.subnet;
+
+  if (!subnets || !subnets.has(referencedSubnet)) {
+    errors.push({
+      resource: resource.name,
+      type: resource.type,
+      field: "properties.subnet",
+      message: `EC2 "${resource.name}" references subnet "${referencedSubnet}", but this subnet does not exist.`
     });
   }
 };

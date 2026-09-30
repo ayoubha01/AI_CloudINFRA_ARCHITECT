@@ -7,8 +7,19 @@ import { z } from "zod";
 */
 
 const ec2PropertiesSchema = z.object({
-  instanceType: z.string().min(1).default("t3.micro"),
-  ami: z.string().min(1)
+  instanceType: z
+    .string()
+    .min(1)
+    .default("t3.micro"),
+
+  ami: z
+    .string()
+    .min(1),
+
+  subnet: z
+    .string()
+    .min(1)
+    .optional()
 });
 
 const ec2ResourceSchema = z.object({
