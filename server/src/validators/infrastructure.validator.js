@@ -15,10 +15,18 @@ export const validateInfrastructureReferences = (infrastructure) => {
         validateSecurityGroup( resource,resourceIndex,errors);
       break;
 
+      case "internetGateway":
+      validateInternetGateway(resource,resourceIndex,);
+      break;
+
+      case "routeTable":
+      validateRouteTable(resource,resourceIndex,errors);
+      break;
+
       case "ec2":
         validateEC2(resource, resourceIndex, errors);
       break;
-      
+
       default:
         break;
     }
@@ -131,5 +139,148 @@ const validateSecurityGroup = (
       message:
         `Security Group "${resource.name}" references VPC "${referencedVpc}", but this VPC does not exist.`
     });
+  }
+};
+
+const validateInternetGateway = (
+  resource,
+  resourceIndex,
+  errors
+) => {
+  const referencedVpc = resource.properties.vpc;
+
+  const vpcs = resourceIndex.vpc;
+
+  if (!vpcs || !vpcs.has(referencedVpc)) {
+    errors.push({
+      resource: resource.name,
+      type: resource.type,
+      field: "properties.vpc",
+      message:
+        `Internet Gateway "${resource.name}" references VPC "${referencedVpc}", but this VPC does not exist.`
+    });
+  }
+};
+
+const validateRouteTable = (
+  resource,
+  resourceIndex,
+  errors
+) => {
+  const {
+    vpc,
+    routes = [],
+    subnets = []
+  } = resource.properties;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Validate VPC
+  |--------------------------------------------------------------------------
+  */
+
+  const vpcs = resourceIndex.vpc;
+
+  if (!vpcs || !vpcs.has(vpc)) {
+    errors.push({
+      resource: resource.name,
+      type: resource.type,
+      field: "properties.vpc",
+      message:
+        `Route Table "${resource.name}" references VPC "${vpc}", but this VPC does not exist.`
+    });
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Validate routes
+  |--------------------------------------------------------------------------
+  */
+
+  for (const route of routes) {
+    const referencedGateway =
+      route.internetGateway;
+
+    const gateways =
+      resourceIndex.internetGateway;
+
+    if (
+      !gateways ||
+      !gateways.has(referencedGateway)
+    ) {
+      errors.push({
+        resource: resource.name,
+        type: resource.type,
+        field: "properties.routes",
+        message:
+          `Route Table "${resource.name}" references Internet Gateway "${referencedGateway}", but this Internet Gateway does not exist.`
+      });
+
+      continue;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Make sure Gateway belongs to same VPC
+    |--------------------------------------------------------------------------
+    */
+
+    const gateway =
+      gateways.get(referencedGateway);
+
+    if (gateway.properties.vpc !== vpc) {
+      errors.push({
+        resource: resource.name,
+        type: resource.type,
+        field: "properties.routes",
+        message:
+          `Internet Gateway "${referencedGateway}" and Route Table "${resource.name}" do not belong to the same VPC.`
+      });
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Validate subnet associations
+  |--------------------------------------------------------------------------
+  */
+
+  for (const subnetName of subnets) {
+    const availableSubnets =
+      resourceIndex.subnet;
+
+    if (
+      !availableSubnets ||
+      !availableSubnets.has(subnetName)
+    ) {
+      errors.push({
+        resource: resource.name,
+        type: resource.type,
+        field: "properties.subnets",
+        message:
+          `Route Table "${resource.name}" references subnet "${subnetName}", but this subnet does not exist.`
+      });
+
+      continue;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Make sure subnet belongs to same VPC
+    |--------------------------------------------------------------------------
+    */
+
+    const subnet =
+      availableSubnets.get(subnetName);
+
+    if (subnet.properties.vpc !== vpc) {
+      errors.push({
+        resource: resource.name,
+        type: resource.type,
+        field: "properties.subnets",
+        message:
+          `Subnet "${subnetName}" and Route Table "${resource.name}" do not belong to the same VPC.`
+      });
+    }
   }
 };

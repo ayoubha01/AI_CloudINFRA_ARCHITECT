@@ -223,12 +223,76 @@ const securityGroupResourceSchema = z.object({
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| Internet Gateway
+|--------------------------------------------------------------------------
+*/
+
+const internetGatewayPropertiesSchema = z.object({
+  vpc: z
+    .string()
+    .min(1, "VPC reference is required")
+});
+
+const internetGatewayResourceSchema = z.object({
+  type: z.literal("internetGateway"),
+
+  name: z
+    .string()
+    .min(1, "Internet Gateway name is required"),
+
+  properties: internetGatewayPropertiesSchema
+});
+
+/*
+|--------------------------------------------------------------------------
+| Route Table
+|--------------------------------------------------------------------------
+*/
+
+const routeSchema = z.object({
+  destinationCidrBlock: z
+    .string()
+    .min(1, "Destination CIDR block is required"),
+
+  internetGateway: z
+    .string()
+    .min(1, "Internet Gateway reference is required")
+});
+
+const routeTablePropertiesSchema = z.object({
+  vpc: z
+    .string()
+    .min(1, "VPC reference is required"),
+
+  routes: z
+    .array(routeSchema)
+    .default([]),
+
+  subnets: z
+    .array(z.string().min(1))
+    .default([])
+});
+
+const routeTableResourceSchema = z.object({
+  type: z.literal("routeTable"),
+
+  name: z
+    .string()
+    .min(1, "Route Table name is required"),
+
+  properties: routeTablePropertiesSchema
+});
+
 const resourceSchema = z.discriminatedUnion("type", [
   ec2ResourceSchema,
   s3ResourceSchema,
   vpcResourceSchema,
   subnetResourceSchema,
-  securityGroupResourceSchema
+  securityGroupResourceSchema,
+  internetGatewayResourceSchema,
+  routeTableResourceSchema
 ]);
 
 /*
