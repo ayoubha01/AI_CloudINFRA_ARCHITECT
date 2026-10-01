@@ -22,6 +22,10 @@ import {
   removeNullValues
 } from "../utils/object.utils.js";
 
+import {
+  validateTerraformCode
+} from "../services/terraformValidation.service.js";
+
 export const generateTerraformFromPromptController =
   async (req, res) => {
 
@@ -134,21 +138,44 @@ export const generateTerraformFromPromptController =
         generateTerraform(
           infrastructure
         );
-
+      
       /*
       |--------------------------------------------------------------------------
-      | 7. Return everything
+      | 7. Terraform native validation
+      |--------------------------------------------------------------------------
+      */
+
+      const terraformValidation =
+        await validateTerraformCode(
+          terraform
+        ); 
+      /*
+      |--------------------------------------------------------------------------
+      | 8. Return everything
       |--------------------------------------------------------------------------
       */
 
       return res.status(200).json({
-        success: true,
+        success:
+          terraformValidation.valid,
 
         prompt,
 
         infrastructure,
 
-        terraform
+        terraform:
+          terraformValidation.terraform,
+
+        validation: {
+          terraform:
+            terraformValidation.valid,
+
+          diagnostics:
+            terraformValidation.diagnostics || [],
+
+          error:
+            terraformValidation.error || null
+        }
       });
 
     } catch (error) {
