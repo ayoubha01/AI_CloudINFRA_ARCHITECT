@@ -188,3 +188,110 @@ export const generateTerraformFromPromptController =
       });
     }
   };
+
+export const generateHCLFromPromptController =
+  async (req, res) => {
+    try {
+      const promptValidation =
+        promptSchema.safeParse(req.body);
+
+      if (!promptValidation.success) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid prompt",
+          details: promptValidation.error.issues
+        });
+      }
+
+      const { prompt } = promptValidation.data;
+
+      // 1. AI generation
+      const aiInfrastructure =
+        await generateInfrastructureFromPrompt(prompt);
+
+      // 2. Normalize
+      const normalizedInfrastructure =
+        removeNullValues(aiInfrastructure);
+
+      // 3. Zod validation
+      const schemaValidation =
+        infrastructureSchema.safeParse(
+          normalizedInfrastructure
+        );
+
+      if (!schemaValidation.success) {
+        return res.status(422).json({
+          success: false,
+          error:
+            "AI generated an invalid infrastructure specification",
+          details:
+            schemaValidation.error.issues
+        });
+      }
+
+      const infrastructure =
+        schemaValidation.data;
+
+      // 4. Dependency validation
+      const logicalValidation =
+        validateInfrastructureReferences(
+          infrastructure
+        );
+
+      if (!logicalValidation.valid) {
+        return res.status(422).json({
+          success: false,
+          error:
+            "Invalid infrastructure dependencies",
+          details:
+            logicalValidation.errors
+        });
+      }
+
+      // 5. Terraform generation
+      const terraform =
+        generateTerraform(infrastructure);
+
+      // 6. fmt + init + validate
+      const terraformValidation =
+        await validateTerraformCode(terraform);
+
+      if (!terraformValidation.valid) {
+        return res.status(422).json({
+          success: false,
+          error: "Terraform validation failed",
+          diagnostics:
+            terraformValidation.diagnostics,
+          validationError:
+            terraformValidation.error
+        });
+      }
+
+      // 7. Return PURE HCL
+      res.setHeader(
+        "Content-Type",
+        "text/plain; charset=utf-8"
+      );
+      
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="main.tf"'
+      );
+
+      res.status(200).send(
+        terraformValidation.terraform
+      );
+
+      return res.send(
+        terraformValidation.terraform
+      );
+      
+    } catch (error) {
+      console.error(error);
+
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  };
