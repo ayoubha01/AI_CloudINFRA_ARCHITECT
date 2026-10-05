@@ -13,14 +13,14 @@ RUN chown node:node /app
 USER node
 
 # Copy dependency files first for Docker layer caching
-COPY --chown=node:node frontend/package.json frontend/package-lock.json ./
+COPY --chown=node:node /frontend/package.json frontend/package-lock.json ./
 
 # Install dependencies required to build React
 RUN npm ci \
     && npm cache clean --force
 
 # Copy frontend source code
-COPY --chown=node:node frontend/ .
+COPY --chown=node:node /frontend .
 
 # Build production static files
 RUN npm run build
@@ -40,4 +40,4 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Nginx unprivileged image listens on 8080
 EXPOSE 8080
 
-CMD ["npm", "run", "dev;"]
+CMD ["npm", "run", "dev"]
