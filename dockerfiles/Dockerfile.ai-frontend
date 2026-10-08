@@ -2,24 +2,25 @@
 
 FROM node:24-bookworm-slim
 
-ENV NODE_ENV=dev
+ENV NODE_ENV=development
 
 WORKDIR /app
 
-# Copy dependency files
+# Copy dependency manifests
 COPY frontend/package.json frontend/package-lock.json ./
 
-# Install dependencies while building the image
+# Install dependencies
 RUN npm ci \
     && npm cache clean --force
 
-# Copy application
+# Copy frontend source
 COPY frontend/ .
 
-# Give the application directory to the non-root user
-RUN chown -R node:node /app
+# Fix ownership and permissions before dropping privileges
+RUN chown -R node:node /app \
+    && chmod -R u+rwX /app
 
-# Drop root privileges
+# Application runs as non-root
 USER node
 
 EXPOSE 5173

@@ -1,5 +1,28 @@
-./server/package-lock.json
-node_modules/
+# Never copy local Node dependencies
+**/node_modules
+frontend/node_modules
+server/node_modules
+
+# Vite output/cache
+frontend/dist
+frontend/.vite
+
+# Git
+.git
+.gitignore
+
+# Environment files
 .env
-generated/
-vite.config.js
+.env.*
+frontend/.env
+frontend/.env.*
+server/.env
+server/.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode
+.idea
