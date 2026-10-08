@@ -1,28 +1,49 @@
 # syntax=docker/dockerfile:1
 
+# =========================================================
+# Terraform source
+# =========================================================
+FROM hashicorp/terraform:1.16.4 AS terraform
+
+
+# =========================================================
+# Node.js backend
+# =========================================================
 FROM node:24-bookworm-slim
 
+ENV NODE_ENV=development
+ENV GROQ_API_KEY=********
 
-ENV NODE_ENV=dev
-## ENV GROQ_API_KEY=****************************
 WORKDIR /app
 
+# Install trusted CA certificates
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Terraform CLI from the official HashiCorp image
+COPY --from=terraform /bin/terraform /usr/local/bin/terraform
+
+# Verify Terraform installation
+RUN terraform version
+
+# Prepare application directory for non-root execution
 RUN chown node:node /app
 
+# Drop root privileges
 USER node
 
-COPY --chown=node:node /server/package.json /server/package-lock.json ./
+# Copy dependency files first
+COPY --chown=node:node server/package.json server/package-lock.json ./
 
-# Install production dependencies only
+# Install Node.js dependencies
 RUN npm ci \
     && npm cache clean --force
 
-# Copy application source
+# Copy backend source
 COPY --chown=node:node server/ .
 
-# Document application port
 EXPOSE 5000
 
-# Start application
-# Change src/index.js if your entry point is different
 CMD ["npm", "run", "dev"]
