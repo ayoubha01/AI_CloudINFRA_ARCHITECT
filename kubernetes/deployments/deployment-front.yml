@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: frontend-deployment
+  labels:
+    app: frontend
+    tier: frontend
+spec: 
+  replicas: 2 
+  template:
+    metadata:
+      labels:
+       app: frontend
+    containers:
+      - name: frontend
+        image: ai-frontend:latest       
