@@ -15,7 +15,6 @@ ENV NODE_ENV=development
 
 # specify the value and passes it as an env variable like
 # docker run -d --name somname -p port1:port2 -e GROQ_API_KEY=somevalue ... (to be continued)
-ENV GROQ_API_KEY=******** 
 
 WORKDIR /app
 

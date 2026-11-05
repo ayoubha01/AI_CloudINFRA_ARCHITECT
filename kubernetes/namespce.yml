@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-cloud-architect
+  labels:
+    app: ai-cloud-architect 
+    environment: development

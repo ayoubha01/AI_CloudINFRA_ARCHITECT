@@ -40,7 +40,7 @@ function App() {
       setResult(null);
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/generate-from-prompt`,
+        `/api/generate-from-prompt`,
         {
           method: "POST",
           headers: {

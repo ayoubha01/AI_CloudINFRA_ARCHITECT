@@ -6,11 +6,15 @@ metadata:
     app: frontend
     tier: frontend
 spec: 
-  replicas: 2 
+  replicas: 3 
   template:
     metadata:
       labels:
        app: frontend
-    containers:
-      - name: frontend
-        image: ai-frontend:latest       
+    spec: 
+      containers:
+        - name: frontend
+          image: ai-frontend:latest
+  selector:
+    matchLabels: 
+      app: frontend    

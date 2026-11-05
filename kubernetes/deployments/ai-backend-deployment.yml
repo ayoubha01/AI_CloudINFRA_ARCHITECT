@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: backend-deployment
+  labels:
+    app: backend
+    tier: backend
+spec: 
+  replicas: 3
+  template:
+    metadata:
+      labels:
+       app: backend
+    spec: 
+      containers:
+        - name: backend
+          image: ai-backend:latest
