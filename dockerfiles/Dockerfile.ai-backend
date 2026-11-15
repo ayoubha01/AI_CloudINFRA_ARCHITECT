@@ -44,7 +44,7 @@ RUN npm ci \
     && npm cache clean --force
 
 # Copy backend source
-COPY --chown=node:node server/ .
+COPY --chown=node:node ./server .
 
 EXPOSE 5000
 
