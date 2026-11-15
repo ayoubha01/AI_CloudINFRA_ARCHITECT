@@ -5,15 +5,21 @@ metadata:
   namespace: ai-cloud-architect
   labels:
     app: ai-backend
+    
 spec: 
-  replicas: 1
+
+  replicas: 3
+
   selector:
     matchLabels:
       app: ai-backend
+
   template:
+
     metadata:
       labels:
        app: ai-backend
+
     spec: 
       containers:
         - name: ai-backend
