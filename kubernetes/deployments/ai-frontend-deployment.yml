@@ -1,20 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata: 
-  name: frontend-deployment
+  name: ai-frontend-deployment
+  namespace: ai-cloud-architect
   labels:
-    app: frontend
-    tier: frontend
+    app: ai-frontend
 spec: 
   replicas: 3 
+  selector:
+    matchLabels: 
+      app: ai-frontend    
   template:
     metadata:
       labels:
-       app: frontend
+       app: ai-frontend
     spec: 
       containers:
-        - name: frontend
+        - name: ai-frontend
           image: ai-frontend:latest
-  selector:
-    matchLabels: 
-      app: frontend    
+          imagePullPolicy: IfNotPresent
+          ports: 
+            - containerPort: 5173
+              name: http-frontend
+              protocol: TCP
+  
