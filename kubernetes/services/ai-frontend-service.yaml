@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata: 
+  name: ai-frontend-service
+  namespace: ai-cloud-architect
+spec:
+
+  type: ClusterIP
+
+  selector:
+    app: ai-frontend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5173
+      targetPort: 5173
