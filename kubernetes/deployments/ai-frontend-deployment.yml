@@ -17,10 +17,10 @@ spec:
     spec: 
       containers:
         - name: ai-frontend
-          image: ai-frontend:latest
+          image: ai-frontend:1.0.0
           imagePullPolicy: IfNotPresent
           ports: 
-            - containerPort: 5173
+            - containerPort: 8080
               name: http-frontend
               protocol: TCP
           envFrom: 
