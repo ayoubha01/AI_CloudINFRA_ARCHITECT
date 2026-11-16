@@ -23,7 +23,7 @@ spec:
     spec: 
       containers:
         - name: ai-backend
-          image: ai-backend:latest
+          image: ai-backend:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
