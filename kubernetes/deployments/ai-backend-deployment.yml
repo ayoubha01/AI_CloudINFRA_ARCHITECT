@@ -29,4 +29,8 @@ spec:
             - containerPort: 5000
               name: http-backend
               protocol: TCP
-               
+          envFrom: 
+            - configMapRef:
+                name: ai-backend-config
+            - secretRef:
+                name: ai-backend-secret  

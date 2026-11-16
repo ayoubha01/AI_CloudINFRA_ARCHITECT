@@ -23,4 +23,6 @@ spec:
             - containerPort: 5173
               name: http-frontend
               protocol: TCP
-  
+          envFrom: 
+            - configMapRef:
+                name: ai-frontend-config
