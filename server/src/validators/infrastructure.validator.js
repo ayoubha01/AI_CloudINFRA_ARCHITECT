@@ -16,7 +16,7 @@ export const validateInfrastructureReferences = (infrastructure) => {
       break;
 
       case "internetGateway":
-      validateInternetGateway(resource,resourceIndex,);
+      validateInternetGateway(resource,resourceIndex, errors);
       break;
 
       case "routeTable":

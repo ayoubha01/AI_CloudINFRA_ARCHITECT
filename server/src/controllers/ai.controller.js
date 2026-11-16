@@ -277,12 +277,8 @@ export const generateHCLFromPromptController =
         "Content-Disposition",
         'attachment; filename="main.tf"'
       );
-
-      res.status(200).send(
-        terraformValidation.terraform
-      );
-
-      return res.send(
+      
+      return res.status(200).send(
         terraformValidation.terraform
       );
       
