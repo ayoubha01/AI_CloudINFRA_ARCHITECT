@@ -23,7 +23,7 @@ spec:
     spec: 
       containers:
         - name: ai-backend
-          image: ai-backend:1.0.0
+          image: ai-backend:1.0.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
@@ -31,17 +31,17 @@ spec:
               protocol: TCP
           readinessProbe:    
             httpGet:
-                path: /
+                path: /health
                 port: 5000
             initialDelaySeconds: 5
             periodSeconds: 10 
           livenessProbe:
             httpGet:
-                path: /
+                path: /health
                 port: 5000
             initialDelaySeconds: 15
             periodSeconds: 20
-
+            failureThreshold: 3
           envFrom: 
             - configMapRef:
                 name: ai-backend-config
