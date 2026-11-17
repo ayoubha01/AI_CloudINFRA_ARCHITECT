@@ -29,6 +29,19 @@ spec:
             - containerPort: 5000
               name: http-backend
               protocol: TCP
+          readinessProbe:    
+            httpGet:
+                path: /
+                port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10 
+          livenessProbe:
+            httpGet:
+                path: /
+                port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+
           envFrom: 
             - configMapRef:
                 name: ai-backend-config
