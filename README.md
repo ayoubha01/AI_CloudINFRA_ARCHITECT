@@ -48,7 +48,7 @@ Dependency checks cover subnet → VPC, security group → VPC, internet gateway
 - **Backend:** Node.js, Express 5, Zod 4, the OpenAI SDK pointed at Groq's OpenAI-compatible API, Terraform CLI
 - **Frontend:** React 19, Vite 8
 - **Generated code:** Terraform with the AWS provider `~> 6.0`
-- **Packaging:** Docker, Docker Compose, Kubernetes manifests
+- **Packaging and deployment:** Docker (multi-stage production images), Docker Compose, Kubernetes behind a Traefik Ingress
 
 ## Configuration
 
@@ -114,11 +114,21 @@ $env:VITE_API_PROXY_TARGET = "http://localhost:5000"; npm run dev
 
 ### Option 3: Kubernetes
 
-The manifests expect two local images and use `imagePullPolicy: IfNotPresent`, so your cluster must be able to find them without a registry. The project is developed on Docker Desktop's built-in Kubernetes.
+The cluster is developed on Docker Desktop's built-in Kubernetes (kind). The manifests use `imagePullPolicy: IfNotPresent`, so the images only need to exist locally on the node, which Docker Desktop shares with your Docker images.
+
+Build the production images. The tags must match those in `kubernetes/deployments/`:
 
 ```bash
-docker build -f dockerfiles/Dockerfile.ai-backend  -t ai-backend:latest  .
-docker build -f dockerfiles/Dockerfile.ai-frontend -t ai-frontend:latest .
+docker build -f dockerfiles/Dockerfile.ai-backend.prod  -t ai-backend:1.0.1  .
+docker build -f dockerfiles/Dockerfile.ai-frontend.prod -t ai-frontend:1.0.0 .
+```
+
+Install an Ingress controller once per cluster. The project uses Traefik, because ingress-nginx is retired:
+
+```bash
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm install traefik traefik/traefik --namespace traefik --create-namespace
 ```
 
 Deploy in this order. The Secret is created by command so the key never reaches Git:
@@ -133,9 +143,12 @@ kubectl create secret generic ai-backend-secret \
 kubectl apply -f kubernetes/configmap.yaml
 kubectl apply -f kubernetes/deployments/
 kubectl apply -f kubernetes/services/
+kubectl apply -f kubernetes/ingress.yaml
 ```
 
-Then open a tunnel to the frontend and browse to <http://localhost:5173>:
+Then open <http://localhost>. Traefik sends `/api` to the backend and everything else to the frontend.
+
+Without an Ingress controller, a port-forward still works:
 
 ```bash
 kubectl port-forward -n ai-cloud-architect svc/ai-frontend-service 5173:5173
@@ -144,18 +157,22 @@ kubectl port-forward -n ai-cloud-architect svc/ai-frontend-service 5173:5173
 | Object | Name | Notes |
 |--------|------|-------|
 | Namespace | `ai-cloud-architect` | |
-| Deployment | `ai-backend-deployment` | 3 replicas, port 5000 |
-| Deployment | `ai-frontend-deployment` | 2 replicas, port 5173 |
-| Service | `ai-backend-service` | ClusterIP, 5000 |
-| Service | `ai-frontend-service` | ClusterIP, 5173 |
+| Deployment | `ai-backend-deployment` | 3 replicas, port 5000, readiness and liveness probes on `/health` |
+| Deployment | `ai-frontend-deployment` | Stateless nginx serving the production build, port 8080 |
+| Service | `ai-backend-service` | ClusterIP, port 5000 |
+| Service | `ai-frontend-service` | ClusterIP, port 5173 forwarding to container port 8080 |
+| Ingress | `ai-ingress` | Class `traefik`: `/api` to the backend, `/` to the frontend |
 | ConfigMap | `ai-backend-config`, `ai-frontend-config` | Non-sensitive settings |
 | Secret | `ai-backend-secret` | `GROQ_API_KEY` |
+
+**Updating an image:** bump the tag (`1.0.1` → `1.0.2`) and never reuse a published one. Apply the Deployment and check the rollout with `kubectl rollout status`. Because the readiness probe gates traffic, old pods keep serving until the new ones are ready, and a broken image stalls the rollout instead of taking the application down.
 
 ## API
 
 | Method | Path | Body | Returns |
 |--------|------|------|---------|
 | `GET` | `/` | none | A JSON welcome message |
+| `GET` | `/health` | none | `{ "status": "ok" }`, used by the Kubernetes probes |
 | `POST` | `/api/generate` | An infrastructure specification | `{ success, terraform }`, without the Terraform CLI check |
 | `POST` | `/api/generate-from-prompt` | `{ "prompt": "..." }` | The specification, the HCL and the validation diagnostics |
 | `POST` | `/api/generate-hcl` | `{ "prompt": "..." }` | `main.tf` as plain text |
@@ -222,14 +239,17 @@ Resources reference each other by `name`.
 .
 ├── docker-compose.yaml
 ├── dockerfiles/
-│   ├── Dockerfile.ai-backend       # Node.js + Terraform CLI
-│   └── Dockerfile.ai-frontend      # Vite dev server
+│   ├── Dockerfile.ai-backend        # development image (Compose)
+│   ├── Dockerfile.ai-backend.prod   # production image: Node.js + Terraform CLI
+│   ├── Dockerfile.ai-frontend       # development image (Vite dev server)
+│   └── Dockerfile.ai-frontend.prod  # production image: Vite build served by nginx
 ├── frontend/                       # React UI
 │   ├── src/App.jsx
 │   └── vite.config.js              # /api proxy
 ├── kubernetes/
 │   ├── namespace.yaml
 │   ├── configmap.yaml
+│   ├── ingress.yaml                # Traefik routing: /api and /
 │   ├── deployments/
 │   └── services/
 └── server/
@@ -247,9 +267,11 @@ Resources reference each other by `name`.
 
 ## Current limitations
 
-- Both containers run in development mode (nodemon and the Vite dev server).
+- The Compose setup still runs development servers (nodemon and the Vite dev server). The Kubernetes images do not.
 - `terraform init` downloads the AWS provider on every request, so a generation can take a minute or more.
-- The API has no authentication or rate limiting.
+- The API has no authentication, rate limiting or prompt length check on the server side.
+- HTTP only: the Ingress has no TLS yet.
+- The pods have no resource requests or limits yet.
 - AWS only, and routes can only target an internet gateway.
 - There are no automated tests yet.
 
@@ -262,8 +284,10 @@ Resources reference each other by `name`.
 - [x] React interface: prompt editor, Terraform and JSON views
 - [x] Docker images and Docker Compose
 - [x] Kubernetes: namespace, deployments, services, ConfigMap, Secret
-- [ ] Kubernetes: Ingress, health probes, resource limits
-- [ ] Production images (no dev servers, cached Terraform provider)
+- [x] Kubernetes: Traefik Ingress and health probes
+- [x] Production images for the backend and the frontend
+- [ ] Kubernetes: resource limits and TLS
+- [ ] Cached Terraform provider in the backend image
 - [ ] Security checks (Checkov, TFLint) and risky-rule detection
 - [ ] Cost estimation (Infracost)
 - [ ] More AWS services (NAT gateway, RDS, load balancers, IAM)
